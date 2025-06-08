@@ -19,10 +19,15 @@ namespace blockblast
         public MainWindow()
         {
             InitializeComponent();
-
+            
             GameBoard.Inventory = Inventory;
             Inventory.GenerateGroups();
             Inventory.Render();
+        }
+
+        private void Button_Restart_Click(object sender, RoutedEventArgs e)
+        {
+            GameBoard.Restart();
         }
     }
 }

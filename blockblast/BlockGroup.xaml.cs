@@ -28,6 +28,7 @@ namespace blockblast
         private Point _dragStart;
         private DragAdorner? _adorner;
         private AdornerLayer? _layer;
+        private Point _lastMousePosition;
 
         public Block?[,] Blocks { get; private set; }
 
@@ -103,16 +104,11 @@ namespace blockblast
             GroupCanvas.Children.Clear();
             int rows = Mask.GetLength(0);
             int cols = Mask.GetLength(1);
-            int blockSize = !isInInventory ? 50 : 20;
+            int blockSize = !isInInventory ? 20 : 20;
             double width = cols * blockSize;
 
-            if (!isInInventory)
-            {
-                Margin = new Thickness(0);
-            } else
-            {
-                Margin = new Thickness(10,0,0,0);
-            }
+            Margin = new Thickness(10, 0, 0, 0);
+
 
             double height = rows * blockSize;
             GroupCanvas.Width = width;
@@ -125,7 +121,10 @@ namespace blockblast
                     {
                         Block block = Blocks[row, col]!;
                         block.SetSize(blockSize);
-                        GroupCanvas.Children.Add(block);
+                        if (!GroupCanvas.Children.Contains(block))
+                        {
+                            GroupCanvas.Children.Add(block);
+                        }
                         Canvas.SetLeft(block, col * blockSize);
                         Canvas.SetTop(block, row * blockSize);
                     }
@@ -164,9 +163,9 @@ namespace blockblast
             }
 
             // 1️⃣  create adorner
-            _layer = AdornerLayer.GetAdornerLayer(Window.GetWindow(this)?.Content as Visual);
-            _adorner = new DragAdorner(this, this, _dragStart);
-            _layer?.Add(_adorner);
+            //_layer = AdornerLayer.GetAdornerLayer(Window.GetWindow(this)?.Content as Visual);
+            //_adorner = new DragAdorner(this, this, _dragStart);
+            //_layer?.Add(_adorner);
 
             // 2️⃣  handle feedback so we can move the adorner
             GiveFeedback += BlockGroup_GiveFeedback;
@@ -176,10 +175,10 @@ namespace blockblast
             DragDrop.DoDragDrop(this, data, DragDropEffects.Move);
 
             // 3️⃣  cleanup
-            GiveFeedback -= BlockGroup_GiveFeedback;
-            _layer?.Remove(_adorner);
-            _adorner = null;
-            _layer = null;
+            //GiveFeedback -= BlockGroup_GiveFeedback;
+            //_layer?.Remove(_adorner);
+            //_adorner = null;
+            //_layer = null;
         }
 
         private void BlockGroup_GiveFeedback(object? sender, GiveFeedbackEventArgs e)
@@ -188,15 +187,14 @@ namespace blockblast
 
             if (_adorner != null && _layer != null)
             {
-                Point pos = GetMousePosition();
+                //Point pos = GetMousePosition();
                 // Get the position of this control relative to main window
-                Point blockPos = TransformToAncestor(Application.Current.MainWindow).Transform(new Point(0, 0));
-                //Trace.WriteLine($"Adorner:  {pos}, Block position: {blockPos}");
+                //Point blockPos = TransformToAncestor(Application.Current.MainWindow).Transform(new Point(0, 0));
 
-                Point diff = new Point(pos.X - blockPos.X, pos.Y - blockPos.Y);
+                //Point diff = new Point(new Random().Next(0,50), new Random().Next(0, 50));
 
                 // TODO: Finish later
-                //_adorner.UpdatePosition(diff);
+                // _adorner.UpdatePosition(diff);
             }
 
             e.Handled = true;
@@ -205,7 +203,7 @@ namespace blockblast
         private Point GetMousePosition()
         {
             var window = Application.Current.MainWindow;
-            return Mouse.GetPosition(_adorner);
+            return Mouse.GetPosition(window);
         }
 
     }

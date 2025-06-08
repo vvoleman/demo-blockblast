@@ -29,8 +29,8 @@ namespace blockblast
 
         public void UpdatePosition(Point pos)
         {
-            _left = pos.X - _offset.X;
-            _top = pos.Y - _offset.Y;
+            _left = pos.X;
+            _top = pos.Y;
             InvalidateVisual(); // request re-render
         }
 

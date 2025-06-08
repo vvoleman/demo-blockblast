@@ -49,9 +49,6 @@ namespace blockblast
 
         private void RenderBoard()
         {
-            if (_boardData == null)
-                return;
-
             GameCanvas.Children.Clear();
 
             int rows = _boardData.GetLength(0);
@@ -71,6 +68,7 @@ namespace blockblast
                     if (_boardData[row, col] != null)
                     {
                         Block block = _boardData[row, col]!;
+                        int size = block.Size;
 
                         block.Visibility = Visibility.Hidden;
                         // Check if canvas already has block, if not, add
@@ -88,6 +86,18 @@ namespace blockblast
                     }
                 }
             }
+
+            Application.Current.MainWindow.Title = $"BlockBlast - Score: {Score}";
+        }
+
+        public void Restart()
+        {
+            _boardData = new Block?[BoardSize, BoardSize];
+            Score = 0;
+
+            Inventory!.GenerateGroups();
+            Inventory!.Render();
+            RenderBoard();
         }
 
         public void CheckBoard()
@@ -187,67 +197,11 @@ namespace blockblast
                 }
             }
 
-            bool canFit = false;
-            if (emptyPlaces.Count > blockCount)
-            {
-                canFit = CanAnyGroupFit(emptyPlaces, groupList);
-            }
-
-            if (!canFit)
+            if (emptyPlaces.Count < blockCount)
             {
                 MessageBox.Show("No possible moves. Game over!");
             }
         }
-
-        public bool CanAnyGroupFit(List<Point> filledPoints, List<BlockGroup> groups)
-        {
-            var pointSet = new HashSet<Point>(filledPoints);
-
-            while (pointSet.Count > 0)
-            {
-                var start = pointSet.First();
-
-                // Expand to max width
-                int width = 0;
-                while (pointSet.Contains(new Point(start.X + width, start.Y)))
-                    width++;
-
-                // Expand to max height
-                int height = 1;
-                bool stop = false;
-                while (!stop)
-                {
-                    for (int dx = 0; dx < width; dx++)
-                    {
-                        if (!pointSet.Contains(new Point(start.X + dx, start.Y + height)))
-                        {
-                            stop = true;
-                            break;
-                        }
-                    }
-                    if (!stop) height++;
-                }
-
-                // Try each group inside this rectangle
-                foreach (var group in groups)
-                {
-                    int gRows = group.Mask.GetLength(0);
-                    int gCols = group.Mask.GetLength(1);
-
-                    if (gCols <= width && gRows <= height)
-                        return true; // Found a fit, stop immediately
-                }
-
-                // Remove the current block from set
-                for (int dx = 0; dx < width; dx++)
-                    for (int dy = 0; dy < height; dy++)
-                        pointSet.Remove(new Point(start.X + dx, start.Y + dy));
-            }
-
-            return false; // No fits found
-        }
-
-
 
         private bool CanPlace(List<Point> positions)
         {
@@ -291,11 +245,6 @@ namespace blockblast
             {
                 var blockGroup = (BlockGroup)e.Data.GetData(typeof(BlockGroup));
 
-                if (blockGroup.Parent is Panel oldParent)
-                    oldParent.Children.Remove(blockGroup);
-
-                //GameCanvas.Children.Add(blockGroup);
-
                 Point dropPos = e.GetPosition(this);
 
                 List<Point> positions = new List<Point>();
@@ -329,6 +278,7 @@ namespace blockblast
                     for (int i = 0; i < blockList.Count; i++)
                     {
                         blockGroup.RemoveBlock(blockList[i]);
+                        blockList[i].SetSize(BlockSize);
                         _boardData[(int)positions[i].Y, (int)positions[i].X] = blockList[i];
                     }
 
@@ -338,6 +288,7 @@ namespace blockblast
                     // If the position is not valid, remove the block group
                     //GameCanvas.Children.Remove(blockGroup);
                     MessageBox.Show("Cannot place block group here!");
+                    blockGroup.RenderGroup(true);
                 }
 
                
