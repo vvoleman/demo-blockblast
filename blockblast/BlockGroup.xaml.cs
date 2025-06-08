@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -24,6 +25,10 @@ namespace blockblast
         public Color Color { get; private set; }
         public int[,] Mask { get; private set; }
 
+        private Point _dragStart;
+        private DragAdorner? _adorner;
+        private AdornerLayer? _layer;
+
         public Block?[,] Blocks { get; private set; }
 
         public BlockGroup(Color color, int[,] mask)
@@ -33,29 +38,64 @@ namespace blockblast
             this.Color = color;
             this.Mask = mask;
             this.Blocks = GenerateBlocks();
+            
         }
 
         private Block?[,] GenerateBlocks()
         {
             int rows = Mask.GetLength(0);
             int cols = Mask.GetLength(1);
-            Blocks = new Block?[rows, cols];
+            var blocks = new Block?[rows, cols];
             for (int i = 0; i < rows; i++)
             {
                 for (int j = 0; j < cols; j++)
                 {
                     if (Mask[i, j] == 1)
                     {
-                        Blocks[i, j] = new Block(new SolidColorBrush(Color), GameBoardControl.BlockSize);
+                        blocks[i, j] = new Block(new SolidColorBrush(Color), GameBoardControl.BlockSize);
                     }
                     else
                     {
-                        Blocks[i, j] = null;
+                        blocks[i, j] = null;
                     }
                 }
             }
 
-            return Blocks;
+            return blocks;
+        }
+
+        public void RemoveBlock(Block block)
+        {
+            GroupCanvas.Children.Remove(block);
+            for (int i = 0; i < Blocks.GetLength(0); i++)
+            {
+                for (int j = 0; j < Blocks.GetLength(1); j++)
+                {
+                    if (Blocks[i, j] == block)
+                    {
+                        Blocks[i, j] = null;
+                        return;
+                    }
+                }
+            }
+        }
+
+        public int GetBlockCount()
+        {
+            int count = 0;
+
+            for (int i = 0; i < Blocks.GetLength(0); i++)
+            {
+                for (int j = 0; j < Blocks.GetLength(1); j++)
+                {
+                    if (Blocks[i, j] != null)
+                    {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
         }
 
         public void RenderGroup(bool isInInventory)
@@ -65,6 +105,15 @@ namespace blockblast
             int cols = Mask.GetLength(1);
             int blockSize = !isInInventory ? 50 : 20;
             double width = cols * blockSize;
+
+            if (!isInInventory)
+            {
+                Margin = new Thickness(0);
+            } else
+            {
+                Margin = new Thickness(10,0,0,0);
+            }
+
             double height = rows * blockSize;
             GroupCanvas.Width = width;
             GroupCanvas.Height = height;
@@ -84,41 +133,80 @@ namespace blockblast
             }
         }
 
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            _dragStart = e.GetPosition(this);
+            CaptureMouse();
+        }
+
         protected override void OnMouseMove(MouseEventArgs e)
         {
             base.OnMouseMove(e);
 
-            if (e.LeftButton == MouseButtonState.Pressed)
+            if (e.LeftButton != MouseButtonState.Pressed)
             {
-                // Package the data.
-                DataObject data = new DataObject();
-                data.SetData(DataFormats.StringFormat, Blocks.ToString());
-                data.SetData("Double", GroupCanvas.Height);
-                data.SetData("Object", this);
-
-                // Initiate the drag-and-drop operation.
-                DragDrop.DoDragDrop(this, this, DragDropEffects.Copy | DragDropEffects.Move);
+                return;
             }
+
+            Point cur = e.GetPosition(this);
+            Vector diff = cur - _dragStart;
+            if (Math.Abs(diff.X) < SystemParameters.MinimumHorizontalDragDistance &&
+                Math.Abs(diff.Y) < SystemParameters.MinimumVerticalDragDistance)
+                return;
+
+            ReleaseMouseCapture();
+
+            if (Window.GetWindow(this) == null)
+            {
+                return;
+            }
+
+            // 1️⃣  create adorner
+            _layer = AdornerLayer.GetAdornerLayer(Window.GetWindow(this)?.Content as Visual);
+            _adorner = new DragAdorner(this, this, _dragStart);
+            _layer?.Add(_adorner);
+
+            // 2️⃣  handle feedback so we can move the adorner
+            GiveFeedback += BlockGroup_GiveFeedback;
+            RenderGroup(false);
+            var data = new DataObject(typeof(BlockGroup), this);
+
+            DragDrop.DoDragDrop(this, data, DragDropEffects.Move);
+
+            // 3️⃣  cleanup
+            GiveFeedback -= BlockGroup_GiveFeedback;
+            _layer?.Remove(_adorner);
+            _adorner = null;
+            _layer = null;
         }
 
-        protected override void OnGiveFeedback(GiveFeedbackEventArgs e)
+        private void BlockGroup_GiveFeedback(object? sender, GiveFeedbackEventArgs e)
         {
-            base.OnGiveFeedback(e);
-            // These Effects values are set in the drop target's
-            // DragOver event handler.
-            if (e.Effects.HasFlag(DragDropEffects.Copy))
+            e.UseDefaultCursors = false;
+
+            if (_adorner != null && _layer != null)
             {
-                Mouse.SetCursor(Cursors.Cross);
+                Point pos = GetMousePosition();
+                // Get the position of this control relative to main window
+                Point blockPos = TransformToAncestor(Application.Current.MainWindow).Transform(new Point(0, 0));
+                //Trace.WriteLine($"Adorner:  {pos}, Block position: {blockPos}");
+
+                Point diff = new Point(pos.X - blockPos.X, pos.Y - blockPos.Y);
+
+                // TODO: Finish later
+                //_adorner.UpdatePosition(diff);
             }
-            else if (e.Effects.HasFlag(DragDropEffects.Move))
-            {
-                Mouse.SetCursor(Cursors.Pen);
-            }
-            else
-            {
-                Mouse.SetCursor(Cursors.No);
-            }
+
             e.Handled = true;
         }
+
+        private Point GetMousePosition()
+        {
+            var window = Application.Current.MainWindow;
+            return Mouse.GetPosition(_adorner);
+        }
+
     }
 }

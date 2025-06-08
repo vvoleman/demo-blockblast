@@ -20,6 +20,7 @@ namespace blockblast
         {
             InitializeComponent();
 
+            GameBoard.Inventory = Inventory;
             Inventory.GenerateGroups();
             Inventory.Render();
         }

@@ -20,7 +20,9 @@ namespace blockblast
     /// </summary>
     public partial class Inventory : UserControl
     {
-        public BlockGroup?[] blocksGroups { get; private set; } = new BlockGroup?[3];
+        public const int InventorySize = 3;
+
+        public BlockGroup?[] BlocksGroups { get; private set; } = new BlockGroup?[InventorySize];
 
         public Inventory()
         {
@@ -40,12 +42,12 @@ namespace blockblast
                 Colors.Orange
             };
 
-            for (int i = 0; i < masks.Count; i++)
+            for (int i = 0; i < InventorySize; i++)
             {
-                var color = colors[Random.Shared.Next(colors.Count - 1)];
-                var mask = masks[Random.Shared.Next(masks.Count - 1)];
+                var color = colors[Random.Shared.Next(colors.Count)];
+                var mask = masks[Random.Shared.Next(masks.Count)];
 
-                blocksGroups[i] = new BlockGroup(color, mask);
+                BlocksGroups[i] = new BlockGroup(color, mask);
             }
         }
 
@@ -54,22 +56,30 @@ namespace blockblast
             // Remove content of the Container
             Container.Children.Clear();
 
-            for (int i = 0; i < blocksGroups.Length; i++)
+            for (int i = 0; i < BlocksGroups.Length; i++)
             {
-                if (blocksGroups[i] != null)
+                if (BlocksGroups[i] != null)
                 {
-                    var group = blocksGroups[i]!;
+                    var group = BlocksGroups[i]!;
 
-                    if (i != 0)
-                    {
-                        group.Margin = new Thickness(10, 0, 0, 0);
-                    }
-
-                    group.Margin = new Thickness(10, 0, 0, 0);
                     group.RenderGroup(true);
-                    Container.Children.Add(blocksGroups[i]);
+                    Container.Children.Add(BlocksGroups[i]);
                 }
             }
+        }
+
+        public void Remove(BlockGroup blockGroup)
+        {
+            Container.Children.Remove(blockGroup);
+            for (int i = 0; i < BlocksGroups.Length; i++)
+            {
+                if (BlocksGroups[i] == blockGroup)
+                {
+                    BlocksGroups[i] = null;
+                    break;
+                }
+            }
+            Render();
         }
 
         private List<int[,]> getMasks()
@@ -90,27 +100,25 @@ namespace blockblast
                 {
                     { 0, 1, 0 },
                     { 1, 1, 1 },
+                },
+                new int[,]
+                {
+                    { 1 },
+                },
+                new int[,]
+                {
+                    { 1,1 },
+                },
+                new int[,]
+                {
+                    { 1,1 },
+                    { 1,1 },
+                    { 1,1 },
+                    { 1,1 },
+                    { 1,1 },
+                    { 1,1 },
                 }
             ];
-        }
-
-        protected override void OnDrop(DragEventArgs e)
-        {
-            base.OnDrop(e);
-
-            Point p = e.GetPosition(Container);
-
-            // Get element from event
-            if (e.Data.GetDataPresent("Object"))
-            {
-                var group = e.Data.GetData("Object") as BlockGroup;
-                if (group != null)
-                {
-                    Canvas.SetLeft(group, p.X - group.Width / 2);
-                    Canvas.SetTop(group, p.Y - group.Height / 2);
-                }
-
-            }
         }
     }
 }

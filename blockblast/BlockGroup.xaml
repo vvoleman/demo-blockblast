@@ -7,5 +7,5 @@
              mc:Ignorable="d" 
              AllowDrop="True"
              d:DesignHeight="450" d:DesignWidth="800">
-    <Canvas Name="GroupCanvas" Margin="10" Width="100" Height="50" />
+    <Canvas Name="GroupCanvas" Width="100" Height="50" />
 </UserControl>
