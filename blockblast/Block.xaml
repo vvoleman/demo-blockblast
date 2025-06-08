@@ -1,0 +1,13 @@
+﻿<UserControl x:Class="blockblast.Block"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:blockblast"
+             Width="50"
+             Height="50"
+             mc:Ignorable="d">
+    <Canvas x:Name="BlockCanvas" Background="#ccc">
+        <Rectangle Stroke="Red" StrokeThickness="3" x:Name="BlockRectangle" Width="50" Height="50" Fill="Blue" Panel.ZIndex="1"/>
+    </Canvas>
+</UserControl>
